@@ -8,6 +8,8 @@ export default function Home() {
   const hello = api.post.hello.useQuery({ text: "from tRPC" });
   const user = useUser();
 
+  const {data}  = api.post.getAll.useQuery();
+
   return (
     <>
       <Head>
@@ -50,8 +52,21 @@ export default function Home() {
         </div> */}
         {/* <SignUp />; */}
         <SignIn />
-        {!user.isSignedIn && <SignInButton/>}
-        {!!user.isSignedIn && <SignOutButton/>}
+        <div>
+          {!user.isSignedIn && <SignInButton />}
+          {!!user.isSignedIn && <SignOutButton />}
+        </div>
+        <div>
+          {
+            data?.map((post)=> {
+              return (
+                <div key={post.id}>
+                  {post.content}
+                </div>
+              )
+            })
+          }
+        </div>
       </main>
     </>
   );
