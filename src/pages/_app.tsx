@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { api } from "~/utils/api";
 
 import "~/styles/globals.css";
+import { ClerkProvider } from '@clerk/nextjs'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -12,7 +13,9 @@ const inter = Inter({
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
     <main className={`font-sans ${inter.variable}`}>
-      <Component {...pageProps} />
+      <ClerkProvider  {...pageProps}>
+        <Component {...pageProps} />
+      </ClerkProvider>
     </main>
   );
 };
