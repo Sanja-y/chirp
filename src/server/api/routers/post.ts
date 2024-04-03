@@ -24,7 +24,7 @@ export const postRouter = createTRPCRouter({
           createdAt: input.createdAt,
           updatedAt: input.updatedAt,
           content: input.content ,
-          authorID: input.content,
+          authorID: input.authorID,
         },
       });
     }),
