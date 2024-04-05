@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import Loading, { LoadingSpinner } from "~/components/Loading";
 
 import { api } from "~/utils/api";
 import type { RouterOutputs, } from "~/utils/api";
@@ -8,12 +9,18 @@ import { SignIn } from "@clerk/nextjs";
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import Image from "next/image";
+import { NextPage } from "next";
 dayjs.extend(relativeTime);
+
 export default function Home() {
   const hello = api.post.hello.useQuery({ text: "from tRPC" });
-  const user = useUser();
+  const {  isLoaded: userLoaded, isSignedIn} = useUser();
+  // start fetching asap
+  const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
 
-  const { data, isLoading } = api.post.getAll.useQuery();
+  if (!userLoaded && !postsLoading) return <div />
+
+
   type PostWithUser = RouterOutputs["post"]["getAll"][number];
   const PostView = (props: PostWithUser) => {
     const { post, author } = props;
@@ -25,7 +32,7 @@ export default function Home() {
           className="h-14 w-14 rounded-full"
           height={56}
           width={56}
-           />
+        />
         <div className="flex flex-col">
           <div className="flex font-bold text-slate-300 gap-1">
             <span>{`@${author?.username}`}</span> <span className="font-thin">{`· ${dayjs(post.createdAt).fromNow()}`}</span>
@@ -48,7 +55,7 @@ export default function Home() {
           className="h-14 w-14 rounded-full"
           height={56}
           width={56}
-           />
+        />
         <input
           placeholder="Type some emojis!"
           className="grow bg-transparent outline-none" />
@@ -56,11 +63,24 @@ export default function Home() {
     )
   }
 
+  const Feed = () => {
+    const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
+    if (postsLoading)  return <LoadingSpinner />
 
+    if (!data) return <div>Something went wrong</div>
 
-  if (isLoading) return <div>Loading...</div>
+    return (
+      <div className="flex flex-col">
+        {
+          [...data, ...data]?.map((fullPost) => (
+            <PostView {...fullPost} key={fullPost.post.id} />
+          ))
+        }
+      </div>
+    )
+  }
 
-  if (!data) return <div>Something went wrong</div>
+  
 
   return (
     <>
@@ -72,16 +92,10 @@ export default function Home() {
       <main className="flex justify-center h-screen w-full">
         <div className="w-full border-x h-full md:max-w-2xl">
           <div className="flex border-b border-slate-400 p-4">
-            {!user.isSignedIn && <SignInButton />}
-            {user.isSignedIn && <CreatePostWizard />}
+            {!isSignedIn && <SignInButton />}
+            {isSignedIn && <CreatePostWizard />}
           </div>
-          <div className="flex flex-col">
-            {
-              [...data, ...data]?.map((fullPost) => (
-                <PostView {...fullPost} key={fullPost.post.id} />
-              ))
-            }
-          </div>
+            <Feed />
         </div>
       </main>
     </>
