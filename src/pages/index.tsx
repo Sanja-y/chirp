@@ -14,6 +14,10 @@ import { useState } from "react";
 dayjs.extend(relativeTime);
 
 export default function Home() {
+  //states
+  const [value, setValue] = useState<string>("");
+  const [input, setInput] = useState<string>("");
+
   // const hello = api.post.hello.useQuery({ text: "from tRPC" });
   const { isLoaded: userLoaded, isSignedIn } = useUser();
   // start fetching asap
@@ -21,9 +25,6 @@ export default function Home() {
 
   if (!userLoaded && !postsLoading) return <div />
 
-  //states
-  const [value, setValue] = useState<string>("");
-  const [input, setInput] = useState<string>("");
 
 
 
