@@ -10,22 +10,28 @@ import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import Image from "next/image";
 import { NextPage } from "next";
+import { useState } from "react";
 dayjs.extend(relativeTime);
 
 export default function Home() {
-  const hello = api.post.hello.useQuery({ text: "from tRPC" });
-  const {  isLoaded: userLoaded, isSignedIn} = useUser();
+  // const hello = api.post.hello.useQuery({ text: "from tRPC" });
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
   // start fetching asap
   const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
 
   if (!userLoaded && !postsLoading) return <div />
+
+  //states
+  const [value, setValue] = useState<string>("");
+  const [input, setInput] = useState<string>("");
+
 
 
   type PostWithUser = RouterOutputs["post"]["getAll"][number];
   const PostView = (props: PostWithUser) => {
     const { post, author } = props;
     return (
-      <div key={post.id} className="border-b border-slate-400 p-8 flex gap-3">
+      <div key={post.id} className="border-b border-slate-400 p-8 flex gap-3 overflow-hidden">
         <Image
           src={author?.imageUrl}
           alt={`${author.username}'s profile picture`}
@@ -37,13 +43,21 @@ export default function Home() {
           <div className="flex font-bold text-slate-300 gap-1">
             <span>{`@${author?.username}`}</span> <span className="font-thin">{`· ${dayjs(post.createdAt).fromNow()}`}</span>
           </div>
-          <span>{post.content}</span>
+          <span className="text-2xl">{post.content}</span>
         </div>
       </div>
     )
   }
   const CreatePostWizard = () => {
     const { user } = useUser();
+
+    const ctx = api.useUtils();
+    const { mutate, } = api.post.create.useMutation({
+      onSuccess: () => {
+        setValue("");
+        ctx.post.getAll.invalidate();
+      }
+    });
 
     if (!user) return null;
 
@@ -58,21 +72,44 @@ export default function Home() {
         />
         <input
           placeholder="Type some emojis!"
-          className="grow bg-transparent outline-none" />
+          className="grow bg-transparent outline-none"
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (input !== "") {
+                mutate({ content: value, name: "" });
+              }
+            }
+          }}
+        />
+
+
+        <button
+          type="submit"
+          onClick={() => {
+            mutate({
+              content: value,
+              name: ""
+            })
+          }}
+        >Post</button>
       </div>
     )
   }
 
   const Feed = () => {
-    const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
-    if (postsLoading)  return <LoadingSpinner />
+    // const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
+    if (postsLoading) return <LoadingSpinner />
 
     if (!data) return <div>Something went wrong</div>
 
     return (
       <div className="flex flex-col">
         {
-          [...data, ...data]?.map((fullPost) => (
+          data?.map((fullPost) => (
             <PostView {...fullPost} key={fullPost.post.id} />
           ))
         }
@@ -80,7 +117,7 @@ export default function Home() {
     )
   }
 
-  
+
 
   return (
     <>
@@ -95,7 +132,7 @@ export default function Home() {
             {!isSignedIn && <SignInButton />}
             {isSignedIn && <CreatePostWizard />}
           </div>
-            <Feed />
+          <Feed />
         </div>
       </main>
     </>

@@ -3,7 +3,7 @@ import type { User } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";
 
 const filterUserForClient = (user: User) => {
   return {
@@ -12,6 +12,13 @@ const filterUserForClient = (user: User) => {
     imageUrl: user.imageUrl,
   };
 }
+import  {Ratelimit} from "@upstash/ratelimit"
+import {Redis} from "@upstash/redis"
+const rateLimit = new Ratelimit ( {
+  redis:Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(3, "1 m"),
+  analytics: true,
+});
 
 export const postRouter = createTRPCRouter({
   hello: publicProcedure
@@ -22,23 +29,23 @@ export const postRouter = createTRPCRouter({
       };
     }),
 
-  create: publicProcedure
-    .input(z.object({ name: z.string().min(1), id: z.number(), createdAt: z.date(), updatedAt: z.date(), content: z.string().max(255), authorID: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      // simulate a slow db call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+  // create: publicProcedure
+  //   .input(z.object({ name: z.string().min(1), id: z.number(), createdAt: z.date(), updatedAt: z.date(), content: z.string().max(255), authorID: z.string() }))
+  //   .mutation(async ({ ctx, input }) => {
+  //     // simulate a slow db call
+  //     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      return ctx.db.post.create({
-        data: {
-          name: input.name,
-          id: input.id,
-          createdAt: input.createdAt,
-          updatedAt: input.updatedAt,
-          content: input.content,
-          authorID: input.authorID,
-        },
-      });
-    }),
+  //     return ctx.db.post.create({
+  //       data: {
+  //         name: input.name,
+  //         id: input.id,
+  //         createdAt: input.createdAt,
+  //         updatedAt: input.updatedAt,
+  //         content: input.content,
+  //         authorID: input.authorID,
+  //       },
+  //     });
+  //   }),
 
   getLatest: publicProcedure.query(({ ctx }) => {
     return ctx.db.post.findFirst({
@@ -48,6 +55,9 @@ export const postRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => {
     const posts = await ctx.db.post.findMany({
       take: 100,
+      orderBy: [
+        {createdAt:"desc"}
+      ]
     });
 
     const users = (await clerkClient.users.getUserList({
@@ -55,22 +65,47 @@ export const postRouter = createTRPCRouter({
       limit: 100,
     })).map(filterUserForClient);
 
-    console.log(users);
+    // console.log(users);
 
     return posts.map((post) => {
       const author = users.find((user) => user.id === post.authorID);
-      if(!author || !author.username) throw new TRPCError({
+      if (!author || !author.username) throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Author for post not found"
       })
 
       return {
         post,
-        author:{
+        author: {
           ...author,
           username: author.username,
         }
       }
     });
-  })
+  }),
+  create: privateProcedure.input(
+    z.object(
+      {
+        content:z.string().emoji().min(1).max(200),
+        name: z.string(),
+      }
+    )
+  ).mutation(async ({ctx, input}) => {
+      const authorID = String(ctx.currentUserID);
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const {success} = await rateLimit.limit(authorID);
+
+    if(!success) throw new TRPCError({code: "TOO_MANY_REQUESTS" })
+
+    const post = ctx.db.post.create({
+      data: {
+        authorID,
+        name:input.name,
+        content: input.content,
+      },
+    });
+    return post;
+  }),
 });
