@@ -15,7 +15,6 @@ dayjs.extend(relativeTime);
 
 export default function Home() {
   //states
-  const [value, setValue] = useState<string>("");
   const [input, setInput] = useState<string>("");
 
   // const hello = api.post.hello.useQuery({ text: "from tRPC" });
@@ -55,7 +54,7 @@ export default function Home() {
     const ctx = api.useUtils();
     const { mutate, } = api.post.create.useMutation({
       onSuccess: () => {
-        setValue("");
+        setInput("");
         ctx.post.getAll.invalidate();
       }
     });
@@ -81,7 +80,7 @@ export default function Home() {
             if (e.key === "Enter") {
               e.preventDefault();
               if (input !== "") {
-                mutate({ content: value, name: "" });
+                mutate({ content: input, name: "" });
               }
             }
           }}
@@ -92,7 +91,7 @@ export default function Home() {
           type="submit"
           onClick={() => {
             mutate({
-              content: value,
+              content: input,
               name: ""
             })
           }}
