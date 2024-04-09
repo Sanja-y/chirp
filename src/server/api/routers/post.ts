@@ -6,14 +6,8 @@ import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
 
 import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";
+import { filterUserForClient } from "../helpers/filterUserforClient";
 
-const filterUserForClient = (user: User) => {
-  return {
-    id: user.id,
-    username: user.username,
-    imageUrl: user.imageUrl,
-  };
-}
 
 
 export const postRouter = createTRPCRouter({
@@ -82,7 +76,7 @@ export const postRouter = createTRPCRouter({
   create: privateProcedure.input(
     z.object(
       {
-        content: z.string().emoji().min(1).max(200),
+        content: z.string().emoji("Only emojis are allowed").min(1).max(200),
         name: z.string(),
       }
     )
