@@ -10,6 +10,30 @@ import { db } from "~/server/db";
 import { GetStaticProps } from "next";
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
+import { LoadingSpinner } from "~/components/Loading";
+import PostView from "~/components/postview";
+
+
+const ProfileFeed = (props: { userId: string }) => {
+  const { data, isLoading } = api.post.getPostByUserID.useQuery({
+    userId: props.userId,
+  });
+
+  if (isLoading) return <LoadingSpinner />
+
+  if (!data || data.length === 0) return <div>User has not posted</div>
+
+  return <div className="flex flex-col">
+    {
+      data.map(fullPost => {
+        return (
+          <PostView {...fullPost} key={fullPost.post.id} />
+
+        )
+      })
+    }
+  </div>
+};
 
 
 function ProfilePage() {
@@ -42,6 +66,7 @@ function ProfilePage() {
         <div className="h-[64px]"></div>
         <div className="p-4 text-2xl">{`@${data.username}`}</div>
         <div className="w-full border-b border-slate-400" />
+        <ProfileFeed userId={data.id} /> 
       </PageLayout>
     </>
   );

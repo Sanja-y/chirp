@@ -7,7 +7,32 @@ import { Redis } from "@upstash/redis"
 
 import { createTRPCRouter, privateProcedure, publicProcedure } from "~/server/api/trpc";
 import { filterUserForClient } from "../helpers/filterUserforClient";
+import { Post } from "@prisma/client";
 
+const addUserDataToPosts = async (post: Post[]) => {
+  const users = (await clerkClient.users.getUserList({
+    userId: post.map((post) => post.authorID),
+    limit: 100,
+  })).map(filterUserForClient);
+
+  // console.log(users);
+
+  return post.map((post) => {
+    const author = users.find((user) => user.id === post.authorID);
+    if (!author || !author.username) throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Author for post not found"
+    })
+
+    return {
+      post,
+      author: {
+        ...author,
+        username: author.username ?? "(username not found)",
+      },
+    }
+  });
+}
 
 
 export const postRouter = createTRPCRouter({
@@ -37,6 +62,20 @@ export const postRouter = createTRPCRouter({
   //     });
   //   }),
 
+  getPostByUserID: publicProcedure.input(
+    z.object(
+      {
+        userId: z.string(),
+      }
+    )
+  ).query(({ ctx, input }) =>
+    ctx.db.post.findMany({
+      where: {
+        authorID: input.userId
+      },
+      take: 100,
+      orderBy: [{ createdAt: "desc" }]
+    }).then(addUserDataToPosts)),
   getLatest: publicProcedure.query(async ({ ctx }) => {
     return await ctx.db.post.findFirst({
       orderBy: { createdAt: "desc" },
@@ -49,29 +88,8 @@ export const postRouter = createTRPCRouter({
         { createdAt: "desc" }
       ]
     });
+    return addUserDataToPosts(posts)
 
-    const users = (await clerkClient.users.getUserList({
-      userId: posts.map((post) => post.authorID),
-      limit: 100,
-    })).map(filterUserForClient);
-
-    // console.log(users);
-
-    return posts.map((post) => {
-      const author = users.find((user) => user.id === post.authorID);
-      if (!author || !author.username) throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Author for post not found"
-      })
-
-      return {
-        post,
-        author: {
-          ...author,
-          username: author.username,
-        }
-      }
-    });
   }),
   create: privateProcedure.input(
     z.object(
