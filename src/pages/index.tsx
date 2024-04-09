@@ -1,3 +1,4 @@
+'use client'
 import Head from "next/head";
 import Link from "next/link";
 import Loading, { LoadingSpinner } from "~/components/Loading";
