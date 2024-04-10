@@ -2,16 +2,13 @@
 import Head from "next/head";
 import { api } from "~/utils/api";
 import "@trpc/server/rpc"
-import { createServerSideHelpers } from '@trpc/react-query/server';
-import { createContext } from "react";
-import superjson from 'superjson';
-import { appRouter } from "~/server/api/root";
-import { db } from "~/server/db";
-import { GetStaticProps } from "next";
+
 import { PageLayout } from "~/components/layout";
 import Image from "next/image";
 import { LoadingSpinner } from "~/components/Loading";
 import PostView from "~/components/postview";
+import { GetStaticProps } from "next";
+import { generateSSGHelper } from "~/server/api/helpers/ssgHelper";
 
 
 const ProfileFeed = (props: { userId: string }) => {
@@ -71,33 +68,28 @@ function ProfilePage() {
     </>
   );
 }
-export const getStaticPaths = () => {
-  return { paths: [], fallback: "blocking" }
-}
-
 export const getStaticProps: GetStaticProps = async (context) => {
-  const ssg = createServerSideHelpers(
-    {
-      router: appRouter,
-      ctx: { db, currentUserID: null },
-      transformer: superjson, // optional - adds superjson serialization
-    }
-  );
+  const ssg = generateSSGHelper();
+
   const slug = context.params?.slug;
 
   if (typeof slug !== "string") throw new Error("no slug");
 
-  const username = slug.replace("@", "")
+  const username = slug.replace("@", "");
 
-  await ssg.profile.getUserbyUsername.prefetch({ username })
+  await ssg.profile.getUserbyUsername.prefetch({username})
 
   return {
     props: {
       trpcState: ssg.dehydrate(),
-      username
+      username,
     },
-  }
-}
+  };
+};
+
+export const getStaticPaths = () => {
+  return { paths: [], fallback: "blocking" };
+};
 
 export default ProfilePage;
 
