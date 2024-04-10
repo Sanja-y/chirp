@@ -52,5 +52,8 @@
   "ct3aMetadata": {
     "initVersion": "7.30.0"
   },
+  "prisma": {
+    "seed": "ts-node ./prisma/seed.ts"
+  },
   "packageManager": "npm@10.2.4"
 }

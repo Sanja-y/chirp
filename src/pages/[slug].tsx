@@ -7,7 +7,7 @@ import { PageLayout } from "~/components/layout";
 import Image from "next/image";
 import { LoadingSpinner } from "~/components/Loading";
 import PostView from "~/components/postview";
-import { GetStaticProps } from "next";
+import { GetStaticProps, NextPage } from "next";
 import { generateSSGHelper } from "~/server/api/helpers/ssgHelper";
 
 
@@ -33,41 +33,38 @@ const ProfileFeed = (props: { userId: string }) => {
 };
 
 
-function ProfilePage() {
-  const { data, isLoading } = api.profile.getUserbyUsername.useQuery({
-    username: "sanja-y"
+const ProfilePage: NextPage<{ username: string }> = ({ username }) => {
+  const { data } = api.profile.getUserbyUsername.useQuery({
+    username,
   });
-
-  if (isLoading) return <div>Loading...</div>
-
-  if (!data) return <div>404</div>
-
+  if (!data) return <div>404</div>;
   return (
     <>
       <Head>
         <title>{data.username}</title>
       </Head>
       <PageLayout>
-        <div className="bg-slate-600
-        h-36 relative">
+        <div className="relative h-36 bg-slate-600">
           <Image
             src={data.imageUrl}
-            alt={`${data.username ?? ""}'s profile pic`}
+            alt={`${
+              data.username ?? "unknown"
+            }'s profile pic`}
             width={128}
             height={128}
-            className="absolute bottom-0 left-0 -mb-[64px] rounded-full ml-4 border-black border-4 bg-black"
-
+            className="absolute bottom-0 left-0 -mb-[64px] ml-4 rounded-full border-4 border-black bg-black"
           />
         </div>
-
         <div className="h-[64px]"></div>
-        <div className="p-4 text-2xl">{`@${data.username}`}</div>
+        <div className="p-4 text-2xl font-bold">{`@${
+          data.username ?? "unknown"
+        }`}</div>
         <div className="w-full border-b border-slate-400" />
-        <ProfileFeed userId={data.id} /> 
+        <ProfileFeed userId={data.id} />
       </PageLayout>
     </>
   );
-}
+};
 export const getStaticProps: GetStaticProps = async (context) => {
   const ssg = generateSSGHelper();
 
