@@ -14,6 +14,8 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { PageLayout } from "~/components/layout";
 import PostView from "~/components/postview";
+import { Input } from "~/components/ui/input"
+
 
 export default function Home() {
   //states
@@ -29,7 +31,7 @@ export default function Home() {
 
 
 
- 
+
   const CreatePostWizard = () => {
     const { user } = useUser();
 
@@ -126,14 +128,14 @@ export default function Home() {
     <>
       <PageLayout>
         <div className="flex border-b border-slate-400 p-4">
-          {!isSignedIn && (
-            <div className="flex justify-center">
-              <SignInButton />
-            </div>
-          )}
           {isSignedIn && <CreatePostWizard />}
         </div>
         <Feed />
+        {isSignedIn && (
+          <div className="flex justify-end">
+            <SignOutButton />
+          </div>
+        )}
       </PageLayout>
     </>
   );
