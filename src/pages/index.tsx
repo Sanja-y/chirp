@@ -19,7 +19,6 @@ import { Input } from "~/components/ui/input"
 
 export default function Home() {
   //states
-  const [input, setInput] = useState<string>("");
 
   // const hello = api.post.hello.useQuery({ text: "from tRPC" });
   const { isLoaded: userLoaded, isSignedIn } = useUser();
@@ -33,6 +32,8 @@ export default function Home() {
 
 
   const CreatePostWizard = () => {
+  const [input, setInput] = useState<string>("");
+
     const { user } = useUser();
 
     const ctx = api.useUtils();
